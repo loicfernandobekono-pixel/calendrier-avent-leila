@@ -32,8 +32,8 @@ button,input,textarea,select{font:inherit}button{cursor:pointer}.wrap{max-width:
 </article></div>
 <script type="module">
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-const SUPABASE_URL = 'REMPLACER_PAR_URL_SUPABASE';
-const SUPABASE_ANON_KEY = 'REMPLACER_PAR_CLE_ANON_SUPABASE';
+const SUPABASE_URL = 'https://esfrqbmwrgcubcuewzri.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_jZB_6RkqwuKAZ7kVaUx_OQ_mklsUfb4';
 const configured = SUPABASE_URL.startsWith('https://') && !SUPABASE_URL.includes('REMPLACER') && !SUPABASE_ANON_KEY.includes('REMPLACER');
 const supabase = configured ? createClient(SUPABASE_URL,SUPABASE_ANON_KEY) : null;
 const defaults = [
