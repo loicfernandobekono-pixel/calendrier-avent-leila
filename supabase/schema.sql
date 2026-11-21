@@ -22,7 +22,7 @@ using (
 );
 drop policy if exists "Authenticated admins can manage days" on public.calendar_days;
 create policy "Authenticated admins can manage days" on public.calendar_days
-for all to authenticated using (true) with check (true);
+for all to authenticated using ((auth.jwt()->'app_metadata'->>'role') = 'calendar_admin')\nwith check ((auth.jwt()->'app_metadata'->>'role') = 'calendar_admin');
 
 insert into storage.buckets (id,name,public)
 values ('calendar-media','calendar-media',true)
