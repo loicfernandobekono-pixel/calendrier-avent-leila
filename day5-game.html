@@ -80,38 +80,40 @@ let dir=(keys.right?1:0)-(keys.left?1:0);if(player.dashT<=0){if(dir){player.vx=d
 if((keys.jump||keys.up)&&player.on){player.vy=-650;player.on=false;keys.jump=false;keys.up=false;burst(player.x+28,player.y+90,7,'#f5c7e0',80)}
 if(keys.attack)attack();
 if(keys.dash&&player.dashCd<=0&&player.energy>=25){player.dashT=.22;player.dashCd=.8;player.energy-=25;player.inv=Math.max(player.inv,.28);player.vx=player.face*690;burst(player.x+28,player.y+50,12,'#9cecff',190);keys.dash=false}
-// Physique en deux axes : résolution horizontale puis verticale, avec blocs réellement solides.
+// Physique en deux axes : chaque axe est résolu séparément pour empêcher le tunneling.
 const prevX=player.x,prevY=player.y,prevRight=prevX+player.w,prevBottom=prevY+player.h;
 const blockBottom=p=>p.y===ground?H:ground;
 const overlapsY=(y,p)=>y+player.h>p.y+1&&y<blockBottom(p)-1;
 const overlapsX=(x,p)=>x+player.w>p.x+1&&x<p.x+p.w-1;
 player.on=false;
 player.vy+=1650*dt;
-// Axe X : impossible de traverser les côtés des blocs, même en dash.
-const wantedX=clamp(player.x+player.vx*dt,0,worldW-player.w);
+// Horizontal sweep.
+const wantedX=clamp(prevX+player.vx*dt,0,worldW-player.w);
+let nextX=wantedX;
 for(const p of platforms){
- if(!overlapsY(player.y,p))continue;
- if(wantedX+player.w>p.x&&wantedX<p.x+p.w){
-  if(player.vx>0&&prevRight<=p.x+2){player.x=p.x-player.w;player.vx=0}
-  else if(player.vx<0&&prevX>=p.x+p.w-2){player.x=p.x+p.w;player.vx=0}
-  else if(prevRight>p.x&&prevX<p.x+p.w){
-   const pushLeft=prevRight-p.x,pushRight=p.x+p.w-prevX;
-   if(pushLeft<=pushRight){player.x=p.x-player.w;player.vx=0}
-   else{player.x=p.x+p.w;player.vx=0}
-  }
+ if(!overlapsY(prevY,p)||nextX+player.w<=p.x||nextX>=p.x+p.w)continue;
+ if(player.vx>0&&prevRight<=p.x+2){nextX=p.x-player.w;player.vx=0}
+ else if(player.vx<0&&prevX>=p.x+p.w-2){nextX=p.x+p.w;player.vx=0}
+ else{
+  const pushLeft=prevRight-p.x,pushRight=p.x+p.w-prevX;
+  if(pushLeft<=pushRight){nextX=p.x-player.w;player.vx=0}
+  else{nextX=p.x+p.w;player.vx=0}
  }
 }
-player.x=clamp(player.x===prevX&&wantedX!==prevX?wantedX:player.x,0,worldW-player.w);
-// Axe Y : atterrissage sur le dessus et collision avec le dessous des plateformes.
-const wantedY=player.y+player.vy*dt;
+player.x=clamp(nextX,0,worldW-player.w);
+// Vertical sweep.
+const wantedY=prevY+player.vy*dt;
 player.y=wantedY;
 for(const p of platforms){
  if(!overlapsX(player.x,p))continue;
- const bottom=blockBottom(p),oldBottom=prevBottom,newBottom=player.y+player.h;
- if(player.vy>=0&&oldBottom<=p.y+3&&newBottom>=p.y){player.y=p.y-player.h;player.vy=0;player.on=true}
+ const bottom=blockBottom(p),newBottom=player.y+player.h;
+ if(player.vy>=0&&prevBottom<=p.y+3&&newBottom>=p.y){player.y=p.y-player.h;player.vy=0;player.on=true}
  else if(player.vy<0&&prevY>=bottom-3&&player.y<=bottom){player.y=bottom;player.vy=0}
 }
-// Garde-fou : aucun déplacement ne peut traverser un bloc entre deux images.
+// If the character is already on a platform, keep grounded without jitter.
+if(!player.on&&player.vy>=0){
+ for(const p of platforms){if(overlapsX(player.x,p)&&Math.abs(player.y+player.h-p.y)<2){player.y=p.y-player.h;player.vy=0;player.on=true;break}}
+}
 
 if(player.y>H+80){player.x=Math.max(50,player.x-250);player.y=ground-player.h;player.vy=0;damage()}
 pickups.forEach(h=>{if(!h.t&&Math.abs(player.x+28-h.x)<48&&Math.abs(player.y+40-h.y)<65){h.t=true;hearts++;coins+=20;notify('Un cœur retrouvé !');burst(h.x,h.y,28,'#ff6e9b',250);floatText('+20 pièces',h.x,h.y-20,'#ffdd87')}});
