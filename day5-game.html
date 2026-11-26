@@ -45,7 +45,7 @@ function drawSlime(e){drawAtlasEnemy(e,3)}
 function drawWraith(e){drawAtlasEnemy(e,2)}
 function drawWolf(e){drawAtlasEnemy(e,1)}
 function drawBoss(e){drawAtlasEnemy(e,0)}
-function drawAtlasEnemy(e,row){if(enemyAtlas.complete&&enemyAtlas.naturalWidth){const n=[7,8,8,8][row],frame=Math.floor(elapsed*(e.state==='attack'?12:5))%n,sw=144,sh=216;ctx.save();if(e.hit>0)ctx.globalAlpha=.55;ctx.drawImage(enemyAtlas,frame*sw,row*sh,sw,sh,e.x-10,e.y-22,e.w+20,e.h+26);ctx.restore();return;}rect(e.x,e.y,e.w,e.h,'#644d91')}
+function drawAtlasEnemy(e,row){if(enemyAtlas.complete&&enemyAtlas.naturalWidth){const n=[7,8,8,8][row],frame=Math.floor(elapsed*(e.state==='attack'?12:5))%n,sw=enemyAtlas.naturalWidth/8,sh=enemyAtlas.naturalHeight/4;ctx.save();if(e.hit>0)ctx.globalAlpha=.55;ctx.drawImage(enemyAtlas,frame*sw,row*sh,sw,sh,e.x-10,e.y-22,e.w+20,e.h+26);ctx.restore();return;}rect(e.x,e.y,e.w,e.h,'#644d91')}
 function drawBoss(e){ctx.save();ctx.translate(e.x,e.y);ctx.fillStyle=e.hit>0?'#fff':'#34203e';ctx.beginPath();ctx.moveTo(8,98);ctx.lineTo(0,36);ctx.lineTo(15,20);ctx.lineTo(8,0);ctx.lineTo(30,15);ctx.lineTo(51,0);ctx.lineTo(50,20);ctx.lineTo(80,33);ctx.lineTo(73,98);ctx.closePath();ctx.fill();rect(19,36,14,8,'#ff5d83');rect(50,36,14,8,'#ff5d83');rect(22,37,5,5,'#fff');rect(53,37,5,5,'#fff');ctx.restore()}
 function drawEnemy(e){if(!e.alive)return;ctx.save();if(e.state==='telegraph'){ctx.globalAlpha=.4+.5*Math.sin(elapsed*25);ctx.strokeStyle='#ff5c70';ctx.lineWidth=5;ctx.beginPath();ctx.arc(e.x+e.w/2,e.y+e.h/2,e.w*.85,0,Math.PI*2);ctx.stroke()}if(e.type==='slime')drawSlime(e);else if(e.type==='wraith')drawWraith(e);else if(e.type==='wolf')drawWolf(e);else drawBoss(e);ctx.restore();
 const bw=e.w+8;rect(e.x-4,e.y-13,bw,7,'#21172b');rect(e.x-3,e.y-12,(bw-2)*e.hp/e.max,5,'#e44f69')}
@@ -57,7 +57,7 @@ for(let x=180;x<worldW;x+=520)drawTree(x,ground-120,1.15);
 pickups.forEach(h=>{if(h.t)return;const bob=Math.sin(elapsed*4+h.x)*8;ctx.save();ctx.shadowColor='#ff527b';ctx.shadowBlur=28;label('♥',h.x,h.y+bob,43,'#ff547e','center');ctx.restore();for(let i=0;i<4;i++){const a=elapsed*2+i*Math.PI/2;rect(h.x+Math.cos(a)*34,h.y+bob+Math.sin(a)*26,5,5,'#ffe5a1')}});
 enemies.forEach(drawEnemy);
  // castle gate and princess
-rect(gateX,ground-170,150,170,'#44334e');rect(gateX+16,ground-152,118,152,'#27223e');rect(gateX+54,ground-92,42,92,'#c7a36f');rect(gateX+65,ground-80,20,10,'#fff0b4');label(hearts===3&&kills===enemies.length?'UNLOCKED':'SEALED',gateX+75,ground-184,16,'#ffe3a0','center');drawPrincess(5105,ground-82);
+rect(gateX,ground-170,150,170,'#44334e');rect(gateX+16,ground-152,118,152,'#27223e');rect(gateX+54,ground-92,42,92,'#c7a36f');rect(gateX+65,ground-80,20,10,'#fff0b4');label(hearts===3&&kills===enemies.length?'UNLOCKED':'SEALED',gateX+75,ground-184,16,'#ffe3a0','center');drawPrincess(5105,ground);
 ctx.restore();
  // particles and projectiles
 particles.forEach(p=>{ctx.globalAlpha=Math.max(0,p.life/p.max);if(p.kind==='text')label(p.text,p.x-camera,p.y,p.size,p.color,'center');else rect(p.x-camera,p.y,p.size,p.size,p.color);ctx.globalAlpha=1});
