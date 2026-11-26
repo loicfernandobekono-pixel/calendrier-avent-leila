@@ -81,39 +81,62 @@ let dir=(keys.right?1:0)-(keys.left?1:0);if(player.dashT<=0){if(dir){player.vx=d
 if((keys.jump||keys.up)&&player.on){player.vy=-650;player.on=false;keys.jump=false;keys.up=false;burst(player.x+28,player.y+90,7,'#f5c7e0',80)}
 if(keys.attack)attack();
 if(keys.dash&&player.dashCd<=0&&player.energy>=25){player.dashT=.22;player.dashCd=.8;player.energy-=25;player.inv=Math.max(player.inv,.28);player.vx=player.face*690;burst(player.x+28,player.y+50,12,'#9cecff',190);keys.dash=false}
-// Physique en deux axes : chaque axe est résolu séparément pour empêcher le tunneling.
-const prevX=player.x,prevY=player.y,prevRight=prevX+player.w,prevBottom=prevY+player.h;
-const blockBottom=p=>p.y===ground?H:ground;
-const overlapsY=(y,p)=>y+player.h>p.y+1&&y<blockBottom(p)-1;
-const overlapsX=(x,p)=>x+player.w>p.x+1&&x<p.x+p.w-1;
+// Physique AABB avec balayage horizontal puis vertical.
+const prevX=player.x, prevY=player.y;
+const prevRight=prevX+player.w, prevBottom=prevY+player.h;
+const solidBottom=p => p.y===ground ? H+200 : ground;
+const verticalOverlap=(top,bottom,p)=>bottom>p.y+0.5 && top<solidBottom(p)-0.5;
+const horizontalOverlap=(left,right,p)=>right>p.x+0.5 && left<p.x+p.w-0.5;
 player.on=false;
 player.vy+=1650*dt;
-// Horizontal sweep.
-const wantedX=clamp(prevX+player.vx*dt,0,worldW-player.w);
-let nextX=wantedX;
-for(const p of platforms){
- if(!overlapsY(prevY,p)||nextX+player.w<=p.x||nextX>=p.x+p.w)continue;
- if(player.vx>0&&prevRight<=p.x+2){nextX=p.x-player.w;player.vx=0}
- else if(player.vx<0&&prevX>=p.x+p.w-2){nextX=p.x+p.w;player.vx=0}
- else{
-  const pushLeft=prevRight-p.x,pushRight=p.x+p.w-prevX;
-  if(pushLeft<=pushRight){nextX=p.x-player.w;player.vx=0}
-  else{nextX=p.x+p.w;player.vx=0}
- }
+
+// Déplacement horizontal : bloque uniquement les faces latérales réellement traversées.
+let nextX=clamp(prevX+player.vx*dt,0,worldW-player.w);
+if(player.vx>0){
+  let wall=Infinity;
+  for(const p of platforms){
+    if(verticalOverlap(prevY,prevY+player.h,p) && prevRight<=p.x+1 && nextX+player.w>p.x)
+      wall=Math.min(wall,p.x-player.w);
+  }
+  if(wall!==Infinity){nextX=Math.min(nextX,wall);player.vx=0;}
+}else if(player.vx<0){
+  let wall=-Infinity;
+  for(const p of platforms){
+    if(verticalOverlap(prevY,prevY+player.h,p) && prevX>=p.x+p.w-1 && nextX<p.x+p.w)
+      wall=Math.max(wall,p.x+p.w);
+  }
+  if(wall!==-Infinity){nextX=Math.max(nextX,wall);player.vx=0;}
 }
 player.x=clamp(nextX,0,worldW-player.w);
-// Vertical sweep.
-const wantedY=prevY+player.vy*dt;
-player.y=wantedY;
-for(const p of platforms){
- if(!overlapsX(player.x,p))continue;
- const bottom=blockBottom(p),newBottom=player.y+player.h;
- if(player.vy>=0&&prevBottom<=p.y+3&&newBottom>=p.y){player.y=p.y-player.h;player.vy=0;player.on=true}
- else if(player.vy<0&&prevY>=bottom-3&&player.y<=bottom){player.y=bottom;player.vy=0}
+
+// Déplacement vertical : recherche de la première surface rencontrée.
+const nextY=prevY+player.vy*dt;
+if(player.vy>=0){
+  let landing=null;
+  for(const p of platforms){
+    if(!horizontalOverlap(player.x,player.x+player.w,p))continue;
+    if(prevBottom<=p.y+1 && nextY+player.h>=p.y && (!landing||p.y<landing.y)) landing=p;
+  }
+  if(landing){player.y=landing.y-player.h;player.vy=0;player.on=true;}
+  else player.y=nextY;
+}else{
+  let ceiling=null;
+  for(const p of platforms){
+    const bottom=solidBottom(p);
+    if(!horizontalOverlap(player.x,player.x+player.w,p))continue;
+    if(prevY>=bottom-1 && nextY<=bottom && (!ceiling||bottom>ceiling.bottom)) ceiling={bottom};
+  }
+  if(ceiling){player.y=ceiling.bottom;player.vy=0;}
+  else player.y=nextY;
 }
-// If the character is already on a platform, keep grounded without jitter.
-if(!player.on&&player.vy>=0){
- for(const p of platforms){if(overlapsX(player.x,p)&&Math.abs(player.y+player.h-p.y)<2){player.y=p.y-player.h;player.vy=0;player.on=true;break}}
+
+// Maintien au sol : évite les micro-chutes lorsque le chevalier est immobile.
+if(!player.on && player.vy>=0){
+  let support=null;
+  for(const p of platforms){
+    if(horizontalOverlap(player.x,player.x+player.w,p) && Math.abs(player.y+player.h-p.y)<=2 && (!support||p.y<support.y)) support=p;
+  }
+  if(support){player.y=support.y-player.h;player.vy=0;player.on=true;}
 }
 
 if(player.y>H+80){player.x=Math.max(50,player.x-250);player.y=ground-player.h;player.vy=0;damage()}
